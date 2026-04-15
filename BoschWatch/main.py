@@ -28,7 +28,7 @@ class BoschWatch(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("BoschWatch")
-        self.geometry("420x660")
+        self.geometry("420x720")
         self.resizable(False, False)
 
         self._fmt = "12h"
@@ -109,7 +109,7 @@ class BoschWatch(ctk.CTk):
         self.lbl_detail.pack(pady=(0, 6))
 
         self.lbl_overtime = ctk.CTkLabel(
-            result_card, text="",
+            result_card, text=" ",
             font=ctk.CTkFont(size=22, weight="bold"),
             text_color="#66bb6a"
         )
@@ -269,10 +269,12 @@ class BoschWatch(ctk.CTk):
             text_color="gray"
         )
 
-        # compare clock_out against current time (same base date as strptime: 1900-01-01)
-        now = datetime.now().replace(year=1900, month=1, day=1, microsecond=0)
-        if now > clock_out:
-            delta = now - clock_out
+        # compare clock_out against current time — lift both to today's date
+        today = datetime.now().date()
+        clock_out_today = clock_out.replace(year=today.year, month=today.month, day=today.day)
+        now = datetime.now().replace(microsecond=0)
+        if now > clock_out_today:
+            delta = now - clock_out_today
             total_secs = int(delta.total_seconds())
             oh, rem = divmod(total_secs, 3600)
             om, os_ = divmod(rem, 60)
@@ -282,13 +284,13 @@ class BoschWatch(ctk.CTk):
                 over_str = f"+{om}m {os_:02d}s over"
             self.lbl_overtime.configure(text=over_str)
         else:
-            self.lbl_overtime.configure(text="")
+            self.lbl_overtime.configure(text=" ")
 
     def _show_error(self, title: str, detail: str):
         self.lbl_time.configure(text=title, text_color="#ef5350")
         self.lbl_sub.configure(text=detail, text_color="#ef5350")
         self.lbl_detail.configure(text="")
-        self.lbl_overtime.configure(text="")
+        self.lbl_overtime.configure(text=" ")
 
 
 if __name__ == "__main__":
