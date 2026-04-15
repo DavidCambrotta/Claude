@@ -4,34 +4,52 @@ from datetime import datetime, timedelta
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+PLACEHOLDERS = {
+    "12h": ("e.g. 8:41:00 AM", "e.g. 12:30:00 PM", "e.g. 1:15:00 PM"),
+    "24h": ("e.g. 08:41:00",   "e.g. 12:30:00",    "e.g. 13:15:00"),
+}
+
 
 class BoschWatch(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("BoschWatch")
-        self.geometry("420x560")
+        self.geometry("420x600")
         self.resizable(False, False)
+
+        self._fmt = "12h"
 
         # ── Header ──────────────────────────────────────────────
         ctk.CTkLabel(
             self, text="BoschWatch",
             font=ctk.CTkFont(size=30, weight="bold")
-        ).pack(pady=(35, 4))
+        ).pack(pady=(35, 8))
+
+        # ── Format toggle ────────────────────────────────────────
+        self.toggle = ctk.CTkSegmentedButton(
+            self, values=["12h", "24h"],
+            command=self._on_toggle,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            width=120, height=30,
+        )
+        self.toggle.set("12h")
+        self.toggle.pack(pady=(0, 16))
 
         ctk.CTkLabel(
             self, text="Calculate your 8-hour clock-out time",
             font=ctk.CTkFont(size=13), text_color="gray"
-        ).pack(pady=(0, 25))
+        ).pack(pady=(0, 20))
 
         # ── Input card ──────────────────────────────────────────
         card = ctk.CTkFrame(self, corner_radius=16)
         card.pack(padx=30, fill="x")
 
-        self.entry_morning_in  = self._row(card, "Morning clock in",        "e.g. 08:00")
-        self.entry_lunch_out   = self._row(card, "Clock out for lunch",     "e.g. 12:30")
-        self.entry_lunch_in    = self._row(card, "Clock in after lunch",    "e.g. 13:15")
+        ph = PLACEHOLDERS["12h"]
+        self.entry_morning_in, self.lbl_ph_in   = self._row(card, "Morning clock in",     ph[0])
+        self.entry_lunch_out,  self.lbl_ph_out  = self._row(card, "Clock out for lunch",  ph[1])
+        self.entry_lunch_in,   self.lbl_ph_back = self._row(card, "Clock in after lunch", ph[2])
 
-        # ── Button ──────────────────────────────────────────────
+        # ── Calculate button ────────────────────────────────────
         ctk.CTkButton(
             self, text="Calculate", command=self.calculate,
             font=ctk.CTkFont(size=15, weight="bold"),
@@ -62,7 +80,7 @@ class BoschWatch(ctk.CTk):
         self.lbl_detail.pack(pady=(0, 16))
 
     # ── helpers ─────────────────────────────────────────────────
-    def _row(self, parent, label: str, placeholder: str) -> ctk.CTkEntry:
+    def _row(self, parent, label: str, placeholder: str):
         wrap = ctk.CTkFrame(parent, fg_color="transparent")
         wrap.pack(padx=22, pady=9, fill="x")
         ctk.CTkLabel(wrap, text=label, font=ctk.CTkFont(size=13), anchor="w").pack(fill="x")
@@ -71,15 +89,37 @@ class BoschWatch(ctk.CTk):
             height=38, corner_radius=8, font=ctk.CTkFont(size=14)
         )
         entry.pack(fill="x", pady=(3, 0))
-        return entry
+        return entry, entry  # entry + ref for placeholder update
+
+    def _on_toggle(self, value: str):
+        self._fmt = value
+        ph = PLACEHOLDERS[value]
+        self.entry_morning_in.configure(placeholder_text=ph[0])
+        self.entry_lunch_out.configure(placeholder_text=ph[1])
+        self.entry_lunch_in.configure(placeholder_text=ph[2])
+        # reset result when switching format
+        self.lbl_time.configure(text="--:--", text_color="#4fc3f7")
+        self.lbl_sub.configure(text="clock-out target", text_color="gray")
+        self.lbl_detail.configure(text="")
 
     def _parse(self, text: str) -> datetime:
-        for fmt in ("%H:%M", "%H%M", "%H.%M"):
-            try:
-                return datetime.strptime(text.strip(), fmt)
-            except ValueError:
-                pass
-        raise ValueError(f"Cannot parse '{text}'")
+        text = text.strip()
+        if self._fmt == "12h":
+            formats = ("%I:%M:%S %p", "%I:%M:%S%p", "%I:%M %p", "%I:%M%p", "%I %p", "%I%p")
+            return datetime.strptime(text.upper(), next(
+                f for f in formats if self._try_parse(text.upper(), f) is not None
+            ))
+        else:
+            formats = ("%H:%M:%S", "%H:%M", "%H%M%S", "%H%M")
+            return datetime.strptime(text, next(
+                f for f in formats if self._try_parse(text, f) is not None
+            ))
+
+    def _try_parse(self, text: str, fmt: str):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            return None
 
     # ── core logic ──────────────────────────────────────────────
     def calculate(self):
@@ -87,8 +127,9 @@ class BoschWatch(ctk.CTk):
             t_in        = self._parse(self.entry_morning_in.get())
             t_lunch_out = self._parse(self.entry_lunch_out.get())
             t_lunch_in  = self._parse(self.entry_lunch_in.get())
-        except ValueError:
-            self._show_error("Invalid time", "Use HH:MM format (e.g. 08:00)")
+        except (ValueError, StopIteration):
+            hint = "8:41:00 AM" if self._fmt == "12h" else "08:41:00"
+            self._show_error("Invalid time", f"Use {self._fmt} format (e.g. {hint})")
             return
 
         morning_secs = (t_lunch_out - t_in).total_seconds()
@@ -101,17 +142,21 @@ class BoschWatch(ctk.CTk):
             self._show_error("Error", "After-lunch clock-in must be after lunch-out")
             return
 
-        worked_so_far = timedelta(seconds=morning_secs)
-        remaining     = timedelta(hours=8) - worked_so_far
-        clock_out     = t_lunch_in + remaining
+        remaining = timedelta(hours=8) - timedelta(seconds=morning_secs)
+        clock_out  = t_lunch_in + remaining
 
         total_with_break = timedelta(hours=8) + timedelta(seconds=lunch_break)
         hh, mm = divmod(int(total_with_break.total_seconds() // 60), 60)
 
-        self.lbl_time.configure(text=clock_out.strftime("%H:%M"), text_color="#4fc3f7")
+        if self._fmt == "12h":
+            result_str = clock_out.strftime("%I:%M:%S %p").lstrip("0")
+        else:
+            result_str = clock_out.strftime("%H:%M:%S")
+
+        self.lbl_time.configure(text=result_str, text_color="#4fc3f7")
         self.lbl_sub.configure(text="clock-out to reach 8 h worked", text_color="gray")
         self.lbl_detail.configure(
-            text=f"Total time at office: {hh}h {mm:02d}m  •  Break: {int(lunch_break//60)} min",
+            text=f"Total time at office: {hh}h {mm:02d}m  •  Break: {int(lunch_break // 60)} min",
             text_color="gray"
         )
 
