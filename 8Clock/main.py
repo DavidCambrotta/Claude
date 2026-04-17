@@ -282,7 +282,7 @@ class BoschWatch(ctk.CTk):
         self.lbl_sub.configure(text="clock-out to reach 8 h worked", text_color="gray")
         self.lbl_detail.configure(
             text=f"Total time at office: {hh}h {mm:02d}m  •  Break: {int(lunch_break // 60)} min",
-            text_color="gray"
+            text_color="green"
         )
 
         # compare clock_out against current time — lift both to today's date
