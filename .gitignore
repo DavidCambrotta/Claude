@@ -1,0 +1,5 @@
+# PyInstaller output
+*.exe
+8Clock/build/
+8Clock/dist/
+8Clock/*.spec
