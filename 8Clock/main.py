@@ -1,3 +1,5 @@
+import ctypes
+import os
 import threading
 import customtkinter as ctk
 from datetime import datetime, timedelta
@@ -30,6 +32,7 @@ class BoschWatch(ctk.CTk):
         self.title("BoschWatch")
         self.geometry("420x720")
         self.resizable(False, False)
+        self.iconbitmap(os.path.join(os.path.dirname(__file__), "abacate.ico"))
 
         self._fmt = "12h"
 
@@ -201,6 +204,19 @@ class BoschWatch(ctk.CTk):
         return raw  # return as-is if unparseable
 
     def _fetch_done(self, times: list[str]):
+        morning_only = bool(times[0]) and not times[1].strip() and not times[2].strip()
+        if morning_only and datetime.now() >= datetime.now().replace(hour=14, minute=30, second=0, microsecond=0):
+            times[1] = "12:00:00 PM" if self._fmt == "12h" else "12:00:00"
+            times[2] = "1:00:00 PM"  if self._fmt == "12h" else "13:00:00"
+            self._fill_entries(times)
+            self._set_status(
+                f"Fetched: {times[0]}  •  Lunch assumed 12:00–13:00 (1 h)",
+                "#f0a500"
+            )
+            self.btn_fetch.configure(state="normal")
+            self.calculate()
+            return
+
         self._fill_entries(times)
         self._set_status(f"Fetched: {' | '.join(times)}", "#66bb6a")
         self.btn_fetch.configure(state="normal")
@@ -294,5 +310,6 @@ class BoschWatch(ctk.CTk):
 
 
 if __name__ == "__main__":
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("8Clock.app")
     app = BoschWatch()
     app.mainloop()
