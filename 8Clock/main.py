@@ -29,7 +29,7 @@ PLACEHOLDERS = {
 class BoschWatch(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("BoschWatch")
+        self.title("8Clock")
         self.geometry("420x720")
         self.resizable(False, False)
         self.iconbitmap(os.path.join(os.path.dirname(__file__), "abacate.ico"))
@@ -38,7 +38,7 @@ class BoschWatch(ctk.CTk):
 
         # ── Header ──────────────────────────────────────────────
         ctk.CTkLabel(
-            self, text="BoschWatch",
+            self, text="8Clock",
             font=ctk.CTkFont(size=30, weight="bold")
         ).pack(pady=(35, 8))
 
@@ -282,7 +282,7 @@ class BoschWatch(ctk.CTk):
         self.lbl_sub.configure(text="clock-out to reach 8 h worked", text_color="gray")
         self.lbl_detail.configure(
             text=f"Total time at office: {hh}h {mm:02d}m  •  Break: {int(lunch_break // 60)} min",
-            text_color="green"
+            text_color="gray"
         )
 
         # compare clock_out against current time — lift both to today's date
