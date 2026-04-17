@@ -1,5 +1,6 @@
 import ctypes
 import os
+import sys
 import threading
 import customtkinter as ctk
 from datetime import datetime, timedelta
@@ -32,7 +33,8 @@ class BoschWatch(ctk.CTk):
         self.title("8Clock")
         self.geometry("420x720")
         self.resizable(False, False)
-        self.iconbitmap(os.path.join(os.path.dirname(__file__), "abacate.ico"))
+        base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
+        self.iconbitmap(os.path.join(base, "abacate.ico"))
 
         self._fmt = "12h"
 
