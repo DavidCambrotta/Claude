@@ -28,7 +28,7 @@ class BoschWatch(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("8Clock")
-        self.geometry("420x800")
+        self.geometry("420x840")
         self.resizable(False, False)
         base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
         self.iconbitmap(os.path.join(base, "abacate.ico"))
@@ -56,15 +56,24 @@ class BoschWatch(ctk.CTk):
             font=ctk.CTkFont(size=13), text_color="gray"
         ).pack(pady=(0, 16))
 
-        # ── Fetch button ─────────────────────────────────────────
+        # ── Fetch buttons ────────────────────────────────────────
         self.btn_fetch = ctk.CTkButton(
-            self, text="Fetch from Bosch Portal",
+            self, text="Fetch from Bosch Portal (Chrome)",
             command=self._fetch_start,
             font=ctk.CTkFont(size=13),
             height=36, corner_radius=10,
             fg_color="#1e5f8e", hover_color="#174d75",
         )
         self.btn_fetch.pack(padx=30, fill="x")
+
+        self.btn_fetch_ff = ctk.CTkButton(
+            self, text="Fetch from Bosch Portal (Firefox)",
+            command=self._fetch_start_ff,
+            font=ctk.CTkFont(size=13),
+            height=36, corner_radius=10,
+            fg_color="#b5460f", hover_color="#8f3409",
+        )
+        self.btn_fetch_ff.pack(padx=30, pady=(8, 0), fill="x")
 
         self.lbl_status = ctk.CTkLabel(
             self, text="", font=ctk.CTkFont(size=11), text_color="gray"
@@ -157,13 +166,23 @@ class BoschWatch(ctk.CTk):
     # ── Portal fetch (background thread) ────────────────────────
     def _fetch_start(self):
         self.btn_fetch.configure(state="disabled")
-        self._set_status("Opening browser — please log in if prompted...", "#f0a500")
-        threading.Thread(target=self._fetch_worker, daemon=True).start()
+        self.btn_fetch_ff.configure(state="disabled")
+        self._set_status("Opening Chrome — please log in if prompted...", "#f0a500")
+        threading.Thread(target=lambda: self._fetch_worker("chrome"), daemon=True).start()
 
-    def _fetch_worker(self):
+    def _fetch_start_ff(self):
+        self.btn_fetch.configure(state="disabled")
+        self.btn_fetch_ff.configure(state="disabled")
+        self._set_status("Opening Firefox — please log in if prompted...", "#f0a500")
+        threading.Thread(target=lambda: self._fetch_worker("firefox"), daemon=True).start()
+
+    def _fetch_worker(self, browser_type: str):
         try:
             with sync_playwright() as pw:
-                browser = pw.chromium.launch(headless=False, channel="chrome")
+                if browser_type == "firefox":
+                    browser = pw.firefox.launch(headless=False)
+                else:
+                    browser = pw.chromium.launch(headless=False, channel="chrome")
                 page = browser.new_page()
                 page.goto(PORTAL_URL)
 
@@ -218,6 +237,7 @@ class BoschWatch(ctk.CTk):
                 "#f0a500"
             )
             self.btn_fetch.configure(state="normal")
+            self.btn_fetch_ff.configure(state="normal")
             self.calculate()
             return
 
