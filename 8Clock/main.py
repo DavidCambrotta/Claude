@@ -28,7 +28,7 @@ class BoschWatch(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("8Clock")
-        self.geometry("420x840")
+        self.geometry("420x880")
         self.resizable(False, False)
         base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
         self.iconbitmap(os.path.join(base, "abacate.ico"))
@@ -74,6 +74,15 @@ class BoschWatch(ctk.CTk):
             fg_color="#b5460f", hover_color="#8f3409",
         )
         self.btn_fetch_ff.pack(padx=30, pady=(8, 0), fill="x")
+
+        self.btn_fetch_edge = ctk.CTkButton(
+            self, text="Fetch from Bosch Portal (Edge)",
+            command=self._fetch_start_edge,
+            font=ctk.CTkFont(size=13),
+            height=36, corner_radius=10,
+            fg_color="#0f6cbd", hover_color="#0a5097",
+        )
+        self.btn_fetch_edge.pack(padx=30, pady=(8, 0), fill="x")
 
         self.lbl_status = ctk.CTkLabel(
             self, text="", font=ctk.CTkFont(size=11), text_color="gray"
@@ -164,17 +173,30 @@ class BoschWatch(ctk.CTk):
             entry.insert(0, value)
 
     # ── Portal fetch (background thread) ────────────────────────
-    def _fetch_start(self):
+    def _disable_fetch_buttons(self):
         self.btn_fetch.configure(state="disabled")
         self.btn_fetch_ff.configure(state="disabled")
+        self.btn_fetch_edge.configure(state="disabled")
+
+    def _enable_fetch_buttons(self):
+        self.btn_fetch.configure(state="normal")
+        self.btn_fetch_ff.configure(state="normal")
+        self.btn_fetch_edge.configure(state="normal")
+
+    def _fetch_start(self):
+        self._disable_fetch_buttons()
         self._set_status("Opening Chrome — please log in if prompted...", "#f0a500")
         threading.Thread(target=lambda: self._fetch_worker("chrome"), daemon=True).start()
 
     def _fetch_start_ff(self):
-        self.btn_fetch.configure(state="disabled")
-        self.btn_fetch_ff.configure(state="disabled")
+        self._disable_fetch_buttons()
         self._set_status("Opening Firefox — please log in if prompted...", "#f0a500")
         threading.Thread(target=lambda: self._fetch_worker("firefox"), daemon=True).start()
+
+    def _fetch_start_edge(self):
+        self._disable_fetch_buttons()
+        self._set_status("Opening Edge — please log in if prompted...", "#f0a500")
+        threading.Thread(target=lambda: self._fetch_worker("msedge"), daemon=True).start()
 
     def _fetch_worker(self, browser_type: str):
         try:
@@ -182,7 +204,7 @@ class BoschWatch(ctk.CTk):
                 if browser_type == "firefox":
                     browser = pw.firefox.launch(headless=False)
                 else:
-                    browser = pw.chromium.launch(headless=False, channel="chrome")
+                    browser = pw.chromium.launch(headless=False, channel=browser_type)
                 page = browser.new_page()
                 page.goto(PORTAL_URL)
 
@@ -236,19 +258,18 @@ class BoschWatch(ctk.CTk):
                 f"Fetched: {times[0]}  •  Lunch assumed 12:00–13:00 (1 h)",
                 "#f0a500"
             )
-            self.btn_fetch.configure(state="normal")
-            self.btn_fetch_ff.configure(state="normal")
+            self._enable_fetch_buttons()
             self.calculate()
             return
 
         self._fill_entries(times)
         self._set_status(f"Fetched: {' | '.join(times)}", "#66bb6a")
-        self.btn_fetch.configure(state="normal")
+        self._enable_fetch_buttons()
         self.calculate()
 
     def _fetch_error(self, msg: str):
         self._set_status(msg, "#ef5350")
-        self.btn_fetch.configure(state="normal")
+        self._enable_fetch_buttons()
 
     # ── Parse & calculate ────────────────────────────────────────
     def _try_parse(self, text: str, fmt: str):
