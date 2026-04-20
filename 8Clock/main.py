@@ -31,7 +31,7 @@ class BoschWatch(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("8Clock")
-        self.geometry("420x720")
+        self.geometry("420x800")
         self.resizable(False, False)
         base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
         self.iconbitmap(os.path.join(base, "abacate.ico"))
@@ -120,6 +120,9 @@ class BoschWatch(ctk.CTk):
         )
         self.lbl_overtime.pack(pady=(0, 16))
 
+        self._clock_out_today = None
+        self._tick()
+
     # ── helpers ─────────────────────────────────────────────────
     def _row(self, parent, label: str, placeholder: str) -> ctk.CTkEntry:
         wrap = ctk.CTkFrame(parent, fg_color="transparent")
@@ -144,6 +147,8 @@ class BoschWatch(ctk.CTk):
         self.lbl_time.configure(text="--:--", text_color="#4fc3f7")
         self.lbl_sub.configure(text="clock-out target", text_color="gray")
         self.lbl_detail.configure(text="")
+        self._clock_out_today = None
+        self.lbl_overtime.configure(text=" ")
 
     def _fill_entries(self, times: list[str]):
         """Fill entry fields with times already formatted for the active toggle."""
@@ -287,24 +292,30 @@ class BoschWatch(ctk.CTk):
             text_color="gray"
         )
 
-        # compare clock_out against current time — lift both to today's date
         today = datetime.now().date()
-        clock_out_today = clock_out.replace(year=today.year, month=today.month, day=today.day)
+        self._clock_out_today = clock_out.replace(year=today.year, month=today.month, day=today.day)
+        self._tick_once()
+
+    def _tick_once(self):
+        if self._clock_out_today is None:
+            return
         now = datetime.now().replace(microsecond=0)
-        if now > clock_out_today:
-            delta = now - clock_out_today
+        if now > self._clock_out_today:
+            delta = now - self._clock_out_today
             total_secs = int(delta.total_seconds())
             oh, rem = divmod(total_secs, 3600)
             om, os_ = divmod(rem, 60)
-            if oh > 0:
-                over_str = f"+{oh}h {om:02d}m {os_:02d}s over"
-            else:
-                over_str = f"+{om}m {os_:02d}s over"
+            over_str = f"+{oh}h {om:02d}m {os_:02d}s over" if oh > 0 else f"+{om}m {os_:02d}s over"
             self.lbl_overtime.configure(text=over_str)
         else:
             self.lbl_overtime.configure(text=" ")
 
+    def _tick(self):
+        self._tick_once()
+        self.after(1000, self._tick)
+
     def _show_error(self, title: str, detail: str):
+        self._clock_out_today = None
         self.lbl_time.configure(text=title, text_color="#ef5350")
         self.lbl_sub.configure(text=detail, text_color="#ef5350")
         self.lbl_detail.configure(text="")
