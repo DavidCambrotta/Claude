@@ -9,10 +9,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-PORTAL_URL = (
-    "https://inside.bosch.com/irj/portal/fiori"
-    "#HR_CORE_MyTimeEventsExt-manageCorrections"
-)
+PORTAL_URL = "https://pxg.wdisp.bosch.com/flp#HR_CORE_MyTimeEventsExt-manageCorrections"
 PORTAL_SELECTORS = [
     "#__identifier2-__xmlview0--idEventsTable-0-text",
     "#__identifier2-__xmlview0--idEventsTable-1-text",
