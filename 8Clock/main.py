@@ -17,6 +17,7 @@ PORTAL_SELECTORS = [
 ]
 LOGIN_TIMEOUT_MS = 180_000   # 3 min for SSO login
 ELEMENT_TIMEOUT_MS = 30_000
+OPTIONAL_TIMEOUT_MS = 4_000
 
 PLACEHOLDERS = {
     "12h": ("e.g. 8:41:00 AM", "e.g. 12:30:00 PM", "e.g. 1:15:00 PM"),
@@ -217,14 +218,14 @@ class BoschWatch(ctk.CTk):
                     timeout=LOGIN_TIMEOUT_MS
                 )
 
-                # Allow remaining elements to appear
+                # Remaining selectors may not exist (e.g. only morning clock-in present)
+                raw_times = [page.inner_text(PORTAL_SELECTORS[0]).strip()]
                 for sel in PORTAL_SELECTORS[1:]:
-                    page.wait_for_selector(sel, timeout=ELEMENT_TIMEOUT_MS)
-
-                raw_times = [
-                    page.inner_text(sel).strip()
-                    for sel in PORTAL_SELECTORS
-                ]
+                    try:
+                        page.wait_for_selector(sel, timeout=OPTIONAL_TIMEOUT_MS)
+                        raw_times.append(page.inner_text(sel).strip())
+                    except PWTimeout:
+                        raw_times.append("")
                 browser.close()
 
             formatted = [self._convert_portal_time(t) for t in raw_times]
