@@ -11,9 +11,9 @@ ctk.set_default_color_theme("blue")
 
 PORTAL_URL = "https://pxg.wdisp.bosch.com/flp#HR_CORE_MyTimeEventsExt-manageCorrections"
 PORTAL_SELECTORS = [
-    "#__identifier2-__xmlview0--idEventsTable-0-text",
-    "#__identifier2-__xmlview0--idEventsTable-1-text",
-    "#__identifier2-__xmlview0--idEventsTable-2-text",
+    'td[id$="--idEventsTable-0_cell2"] span.sapMText',   # morning clock in
+    'td[id$="--idEventsTable-1_cell2"] span.sapMText',   # morning clock out
+    'td[id$="--idEventsTable-2_cell2"] span.sapMText',   # afternoon clock in
 ]
 LOGIN_TIMEOUT_MS = 180_000   # 3 min for SSO login
 ELEMENT_TIMEOUT_MS = 30_000
