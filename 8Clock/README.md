@@ -68,3 +68,76 @@ Clicking **Fetch from Bosch Portal** opens a Chrome window and navigates to the 
 - `customtkinter >= 5.2.0`
 - `playwright >= 1.40.0`
 - Google Chrome installed (used by Playwright)
+
+
+## Build the executable (Windows)
+
+Follow these steps to generate `8Clock.exe` from source.
+
+### 1. Prerequisites
+
+- Windows 10/11
+- Python 3.10+ (check with `python --version`)
+- Google Chrome or Microsoft Edge installed (used by Playwright at runtime)
+
+### 2. Create a virtual environment
+
+From the `8Clock` folder:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+pip install pyinstaller
+```
+
+### 4. Build
+
+```bash
+pyinstaller --noconfirm --onefile --windowed --name 8Clock --icon abacate.ico --add-data "abacate.ico;." --collect-all customtkinter --collect-all playwright main.py
+```
+
+What each option does:
+
+| Option | Purpose |
+|---|---|
+| `--onefile` | Packs everything into a single `.exe` |
+| `--windowed` | Hides the console window |
+| `--name 8Clock` | Names the output `8Clock.exe` |
+| `--icon abacate.ico` | Sets the file icon |
+| `--add-data "abacate.ico;."` | Bundles the icon used by the window (`iconbitmap`) |
+| `--collect-all customtkinter` | Includes CustomTkinter themes and assets |
+| `--collect-all playwright` | Includes the Playwright driver |
+
+### 5. Get the result
+
+The executable is created at:
+
+```
+dist\8Clock.exe
+```
+
+The `build/` and `dist/` folders and the `.spec` file are generated automatically and ignored by git.
+
+### 6. Test before sharing
+
+1. Close the terminal and double-click `dist\8Clock.exe` (do not run it from the venv).
+2. Click **Fetch from Bosch Portal (Chrome)** and confirm the times are filled in.
+3. Try the 12h/24h toggle and **Calculate**.
+
+### 7. Publish (optional)
+
+Upload `dist\8Clock.exe` to the GitHub **Releases** page. The `.exe` is not committed to the repository.
+
+> **Note:** the executable does not include browsers. The Chrome and Edge buttons use the browsers installed on the machine. The Firefox button also needs Playwright's Firefox, installed with `playwright install firefox`.
+
+### Troubleshooting
+
+- **Window opens and closes immediately:** rebuild without `--windowed` to see the error in the console.
+- **Icon or theme missing:** make sure `--add-data` and `--collect-all customtkinter` were included.
+- **Antivirus flags the `.exe`:** common with PyInstaller `--onefile` builds; rebuild with `--onedir` instead of `--onefile`.
